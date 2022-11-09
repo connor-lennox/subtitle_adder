@@ -1,0 +1,72 @@
+#!/bin/bash
+
+#----------------------------------------------------------------------#
+#                            add_subtitles                             #
+#----------------------------------------------------------------------#
+#       This script combines a video file and a subtitle track.        #
+#                                                                      #
+#   It is really a helper around ffmpeg that allows for shifting the   #
+#     subtitle track, as well as making the command much shorter.      #
+#                                                                      #
+#                       Developer: Connor Lennox                       #
+#                 Contact: clennox99 at gmail dot com                  #
+#                              Version: 1                              #
+#----------------------------------------------------------------------#
+
+function usage {
+    echo -e "Usage: 'add_subtitles video_file subtitle_file output_file [arguments]'\n"
+    echo "options:"
+    echo -e "\t-d (--delay) delay: subtitle delay in seconds. negative values permitted"
+    echo -e "\t-l (--lang) code: language code to assign subtitles (default 'eng')"
+    echo -e "\t-h (--help): displays this message"
+}
+
+# Make sure we at least have three parameters
+if [ $# -lt 3 ]; then
+    usage
+    exit
+fi
+
+video_filepath=$1
+shift
+subtitle_filepath=$1
+shift
+output_filepath=$1
+shift
+
+# Process optional arguments
+delay=0
+lang=eng
+
+while [ "$1" != "" ]; do
+    case $1 in
+        -d | --delay )  shift
+                        delay="$1"
+                        ;;
+        -l | --lang )   shift
+                        lang="$1"
+                        ;;
+        -h | --help )   usage
+                        exit
+                        ;;
+        * )             usage
+                        exit 1
+    esac
+    shift
+done
+
+# If we have a delay, we must make a temp subtitle track:
+tmpfile=""
+if [ "$delay" != 0 ]; then
+    tmpfile=$(mktemp /tmp/subtitle.XXXXXX.srt)
+    ffmpeg -y -itsoffset $delay -i $subtitle_filepath -c copy $tmpfile -loglevel quiet
+    subtitle_filepath=$tmpfile
+fi
+
+# Combine the tracks
+ffmpeg -i "$video_filepath" -i "$subtitle_filepath" -c copy -c:s mov_text -metadata:s:s:0 langauge=$lang "$output_filepath" -loglevel quiet
+
+# Cleanup
+if [ "$tmpfile" != "" ]; then
+    rm "$tmpfile"
+fi
