@@ -64,7 +64,7 @@ if [ "$delay" != 0 ]; then
 fi
 
 # Combine the tracks
-ffmpeg -i "$video_filepath" -i "$subtitle_filepath" -c copy -c:s mov_text -metadata:s:s:0 langauge=$lang "$output_filepath" -loglevel quiet
+ffmpeg -i "$video_filepath" -i "$subtitle_filepath" -c copy -c:s mov_text -map 0:v -map 0:a -map 1:s -metadata:s:s:0 langauge=$lang "$output_filepath" -loglevel quiet
 
 # Cleanup
 if [ "$tmpfile" != "" ]; then
